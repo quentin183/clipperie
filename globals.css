@@ -1,0 +1,37 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-creme: #f6f1e7;
+  --color-encre: #1b1a17;
+  --color-vermillon: #e8472b;
+  --color-sapin: #1f4d3a;
+  --font-titre: "Fraunces", Georgia, serif;
+  --font-texte: "DM Sans", system-ui, sans-serif;
+}
+
+html {
+  background: var(--color-creme);
+}
+
+body {
+  background: var(--color-creme);
+  color: var(--color-encre);
+  font-family: var(--font-texte);
+  font-size: 18px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--font-titre);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.autocollant {
+  border: 2px solid var(--color-encre);
+  box-shadow: 4px 4px 0 var(--color-encre);
+}
