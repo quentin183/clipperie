@@ -26,6 +26,46 @@ function signatureValide(payload: string, entete: string, secret: string) {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
+type SessionStripe = {
+  id: string;
+  customer?: string | null;
+  subscription?: string | null;
+  customer_email?: string | null;
+  customer_details?: { email?: string | null } | null;
+};
+
+async function enregistrerAbonnement(session: SessionStripe) {
+  const url = process.env.SUPABASE_URL;
+  const cle = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !cle) throw new Error("Supabase non configuré");
+
+  const entetes: Record<string, string> = {
+    apikey: cle,
+    "Content-Type": "application/json",
+    Prefer: "resolution=merge-duplicates,return=minimal",
+  };
+  // Les anciennes clés Supabase sont des jetons (eyJ...) qui vont aussi dans Authorization
+  if (cle.startsWith("eyJ")) entetes.Authorization = `Bearer ${cle}`;
+
+  const reponse = await fetch(
+    `${url.replace(/\/$/, "")}/rest/v1/abonnements?on_conflict=stripe_subscription_id`,
+    {
+      method: "POST",
+      headers: entetes,
+      body: JSON.stringify({
+        email: session.customer_details?.email ?? session.customer_email ?? null,
+        stripe_customer_id: session.customer ?? null,
+        stripe_subscription_id: session.subscription ?? session.id,
+        statut: "actif",
+      }),
+    },
+  );
+
+  if (!reponse.ok) {
+    throw new Error(`Enregistrement refusé (${reponse.status})`);
+  }
+}
+
 export async function POST(req: Request) {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {
@@ -41,12 +81,18 @@ export async function POST(req: Request) {
 
   const evenement = JSON.parse(payload) as {
     type: string;
-    data: { object: { id: string; customer_email?: string | null } };
+    data: { object: SessionStripe };
   };
 
   if (evenement.type === "checkout.session.completed") {
-    // Paiement confirmé côté serveur. La base de données arrive à l'étape 3.
-    console.log("PAIEMENT CONFIRMÉ", evenement.data.object.id);
+    try {
+      await enregistrerAbonnement(evenement.data.object);
+      console.log("PAIEMENT CONFIRMÉ ET ENREGISTRÉ", evenement.data.object.id);
+    } catch (e) {
+      console.error("ÉCHEC ENREGISTREMENT", e);
+      // 500 : Stripe renverra l'événement plus tard
+      return new Response("Erreur d'enregistrement", { status: 500 });
+    }
   }
 
   return new Response("ok", { status: 200 });
