@@ -209,7 +209,7 @@ export default function Tunnel() {
       <div className="fixed inset-x-0 bottom-0 border-t-2 border-encre bg-creme p-3">
         <div className="mx-auto max-w-2xl">
           <a
-            href="/paiement"
+            href={`/paiement?f=${format.id}&n=${volume.n}`}
             className="autocollant block w-full rounded-lg bg-vermillon px-5 py-4 text-center text-lg font-bold text-white"
           >
             Débloquer la suite
